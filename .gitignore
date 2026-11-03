@@ -1,0 +1,16 @@
+# Keil build output
+Objects/
+Listings/
+*.o
+*.d
+*.axf
+*.htm
+*.lnp
+*.map
+*.dep
+*.crf
+*.lst
+*.bak
+
+# Per-user Keil settings (window layout etc.)
+*.uvguix.*
