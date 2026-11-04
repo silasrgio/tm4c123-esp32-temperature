@@ -1,18 +1,26 @@
 #include "TM4C123.h"
 
-#define IBRD_Value 8
-#define FBRD_Value 44
+#define IBRD_Value 		8
+#define FBRD_Value 		44
 #define UART_FR_TXFF (1<<5)
 
-void delay (long d){
+uint16_t adcValue;
+
+void delay (volatile long d){
 	while (d--);
 }
-
-uint16_t adcValue;
 
 void UART0_WriteChar (char c){
 	while ((UART0 -> FR & UART_FR_TXFF) != 0);
 	UART0 -> DR = c;
+}
+
+void UART0_WriteString (const char *s){
+	// Loop through s
+	for (int i = 0; s[i] != '\0'; i++){
+	// Call UART_WriteChar on each char
+	UART0_WriteChar (s[i]);
+	}
 }
 
 int main(){
@@ -50,26 +58,26 @@ int main(){
 	
 	// Configuration of GPIO as ADC Channel
 	
-	SYSCTL -> RCGCADC |= (1<<0); 	// Enable ADC0 Clock & Clock for GPIO Pin used (PE3)
+	SYSCTL -> RCGCADC |= (1<<0);    // Enable ADC0 Clock & Clock for GPIO Pin used (PE3)
 	while ((SYSCTL -> PRADC & (1<<0)) == 0);
 	
 	SYSCTL -> RCGCGPIO |= (1<<4);
 	while ((SYSCTL -> PRGPIO & (1<<4)) == 0);
 	
-	GPIOE -> AFSEL |= (1<<3); 		// Alternate function for pin (PE3)
-	GPIOE -> DEN &=(~(1<<3)); 		// Configure the AINx signals to be analogue inputs
-	GPIOE -> AMSEL |= (1<<3); 		// Pin is capable of analog functions
+	GPIOE -> AFSEL |= (1<<3);   // Alternate function for pin (PE3)
+	GPIOE -> DEN &=(~(1<<3));   // Configure the AINx signals to be analogue inputs
+	GPIOE -> AMSEL |= (1<<3);   // Pin is capable of analog functions
 	
 	// Sample Sequencer Configuration
 
-	ADC0 -> ACTSS &= (~(1<<3)); 				//Clear Sample Sequencer 3
-	ADC0 -> EMUX &= (~(0xF000)); 				// Default trigger source for Sample Sequencer 3
-	ADC0 -> SSMUX3 = 0x0; 							// 1st Sample Input Select
-	ADC0 -> SSCTL3 |= (1<<1) | (1<<2); 	// Sample Interrupt Enable & End of Sequence
-	ADC0 -> ACTSS |= (1<<3); 						//Enable Sample Sequencer 3
+	ADC0 -> ACTSS &= (~(1<<3));         // Disable Sample Sequencer 3
+	ADC0 -> EMUX &= (~(0xF000));		// Software trigger source for SS3
+	ADC0 -> SSMUX3 = 0x0;				// SS3 reads AIN0 (PE3)
+	ADC0 -> SSCTL3 |= (1<<1) | (1<<2);	// EN0 & IE0 set RIS flag when done
+	ADC0 -> ACTSS |= (1<<3);			// Enable Sample Sequencer 3
 	
 	while (1){
-		UART0_WriteChar('c');
+		UART0_WriteString("hello\r\n");
 		
 		ADC0 -> PSSI = (1<<3);
 		while ((ADC0 -> RIS & (1<<3)) == 0x0);
